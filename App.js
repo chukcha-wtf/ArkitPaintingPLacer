@@ -14,6 +14,8 @@ import {
   withProjectedPosition
 } from 'react-native-arkit';
 
+import Icon from 'react-native-vector-icons/Ionicons';
+
 const { Box } = ARKit;
 
 const PAINTING_WIDTH = 0.5;
@@ -26,7 +28,7 @@ const Painting = ({paintingPosition, currentAnchor}) => {
   const outerPosition = currentAnchor.positionAbsolute ||
                         currentAnchor.position;
   
-  const eulerAngles = currentAnchor.eulerAngles || currentAnchor.euler;
+  const eulerAngles = currentAnchor.eulerAngles;
 
   return (
     <Box
@@ -53,6 +55,18 @@ const Painting = ({paintingPosition, currentAnchor}) => {
         diffuse: { path: 'assets/Grant_Wood_-_American_Gothic', intensity: 1 },
         lightingModel: ARKit.LightingModel.physicallyBased
       }} />
+  );
+}
+
+const RemoveButton = ({onPress}) => {
+  return (
+    <TouchableOpacity onPress={onPress}
+                      style={styles.removeButton}>
+      <Icon name="ios-trash"
+            color="#dedede"
+            size={24}
+            style={{marginLeft: 1, marginTop: 1}} />
+    </TouchableOpacity>
   );
 }
 
@@ -88,7 +102,7 @@ const PreviewAlternative = ({ onPress, switchPreviews, detected }) => {
 
   return (
     <View style={styles.previewHolder}>
-      <View style={styles.hintTextHolder}>
+      <View style={[styles.hintTextHolder, styles.hintTextSimple]}>
         <Text style={styles.hintText}>
           Please put your phone on the wall{"\n"}
           to detect Vertical plane.
@@ -133,6 +147,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderColor: '#fff',
     borderWidth: 1
+  },
+
+  hintTextSimple: {
+    backgroundColor: '#ED4956'
   },
 
   hintText: {
@@ -198,6 +216,21 @@ const styles = StyleSheet.create({
   viewFinderActive: {
     borderWidth: 2,
     borderColor: '#fff'
+  },
+
+  removeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#c0c0c0',
+    borderWidth: 1,
+    opacity: 0.8,
+    borderColor: '#dedede',
+    alignItems: 'center',
+    justifyContent: 'center'
   }
 });
 
@@ -295,7 +328,9 @@ export default class ReactNativeARKit extends Component {
   _showPreview = () => {
     this.setState({
       showAlternativePreview: false,
-      showRegularPreview: true
+      showRegularPreview: true,
+      currentAnchor: null,
+      paintingPosition: null
     });
   }
 
@@ -303,11 +338,12 @@ export default class ReactNativeARKit extends Component {
     this.setState({
       showAlternativePreview: false,
       showRegularPreview: false,
-      currentAnchor: null,
-      paintingPosition: null
     });
   }
 
+  _removePainting = () => {
+    this._showPreview()
+  }
 
   render() {
     const {
@@ -333,19 +369,26 @@ export default class ReactNativeARKit extends Component {
           {
             currentAnchor && paintingPosition &&
             <Painting paintingPosition={paintingPosition}
-                      currentAnchor={currentAnchor} />
+                      currentAnchor={currentAnchor}/>
           }
         </ARKit>
         {
-          showRegularPreview && <Preview
-                                  onPress={this._setCurrentAnchor}
-                                  detected={canHangAPainting}
-                                  switchPreviews={this._switchPreview} />
+          showRegularPreview &&
+          <Preview
+            onPress={this._setCurrentAnchor}
+            detected={canHangAPainting}
+            switchPreviews={this._switchPreview} />
         }
         {
-          showAlternativePreview && <PreviewAlternative
-                                      onPress={this._setCurrentPlaneFromPhonePosition}
-                                      switchPreviews={this._switchPreview} />
+          showAlternativePreview &&
+          <PreviewAlternative
+            onPress={this._setCurrentPlaneFromPhonePosition}
+            switchPreviews={this._switchPreview} />
+        }
+        {
+          currentAnchor &&
+          <RemoveButton
+            onPress={this._removePainting} />
         }
       </View>
     );
