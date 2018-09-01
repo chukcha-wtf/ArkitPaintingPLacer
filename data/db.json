@@ -1,0 +1,76 @@
+{
+    "paintings": {
+        "1": {
+            "id": "1",
+            "title": "American Gothic",
+            "author": "Grant Wood",
+            "width": 497,
+            "height": 600,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"
+        },
+        "2": {
+            "id": "2",
+            "title": "Nighthawks",
+            "author": "Edward Hopper",
+            "width": 900,
+            "height": 490,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Nighthawks_by_Edward_Hopper_1942.jpg"
+        },
+        "3": {
+            "id": "3",
+            "title": "Wheat Field with Cypresses",
+            "author": "Vincent van Gogh",
+            "width": 750,
+            "height": 588,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Wheat-Field-with-Cypresses-%281889%29-Vincent-van-Gogh-Met.jpg"
+        },
+        "4": {
+            "id": "4",
+            "title": "The Concert",
+            "author": "Johannes Vermeer",
+            "width": 748,
+            "height": 840,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Vermeer_The_concert.JPG"
+        },
+        "5": {
+            "id": "5",
+            "title": "Mother",
+            "author": "James McNeill Whistler",
+            "width": 1440,
+            "height": 1620,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Whistlers_Mother_high_res.jpg"
+        },
+        "6": {
+            "id": "6",
+            "title": "Futurama Fry Scream",
+            "author": "CutyKitty",
+            "width": 792,
+            "height": 1009,
+            "url": "https://orig00.deviantart.net/4b04/f/2015/341/a/5/a52dad84c65ccf93d22cbbee9b3ebf4f-d9jeqhc.jpg"
+        },
+        "7": {
+            "id": "7",
+            "title": "Saint Turangalila",
+            "author": "Dave Pollot",
+            "width": 809,
+            "height": 1083,
+            "url": "https://i0.wp.com/www.davepollot.com/wp-content/uploads/2018/01/saint_turangalila_of_earth.jpg"
+        },
+        "8": {
+            "id": "8",
+            "title": "Homer Portrait",
+            "author": "Vegas Mike",
+            "width": 800,
+            "height": 1078,
+            "url": "https://img00.deviantart.net/e41c/i/2010/060/5/5/homer_portrait_by_vegasmike.jpg"
+        },
+        "9": {
+            "id": "9",
+            "title": "Scene from Moby Dick",
+            "author": "Unknown",
+            "width": 678,
+            "height": 528,
+            "url": "https://i.pinimg.com/originals/d4/8d/64/d48d642973aa671f551cd1ea7fba2775.jpg"
+        }
+    }
+}

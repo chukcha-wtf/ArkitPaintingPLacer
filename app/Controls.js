@@ -14,7 +14,7 @@ const RemoveButton = ({ onPress }) => {
         <TouchableOpacity onPress={onPress}
             style={styles.removeButton}>
             <Icon name="ios-trash"
-                color="#dedede"
+                color="#fff"
                 size={24}
                 style={{ marginLeft: 1, marginTop: 1 }} />
         </TouchableOpacity>
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#c0c0c0',
         borderWidth: 1,
         opacity: 0.8,
-        borderColor: '#dedede',
+        borderColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center'
     }

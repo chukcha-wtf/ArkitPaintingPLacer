@@ -14,6 +14,7 @@ import { ARKit } from 'react-native-arkit';
 
 import Painting from './app/Painting';
 import Controls from './app/Controls';
+import PaintingsList from './app/PaintingsList';
 import { Preview, PreviewAlternative } from './app/Preview';
 
 const screen = Dimensions.get('window');
@@ -26,7 +27,8 @@ export default class ReactNativeARKit extends Component {
     currentAnchor: null,
     paintingPosition: null,
     anchors: {},
-    touchPaintingDetected: false
+    touchPaintingDetected: false,
+    activeImage: null
   };
   
   _onPlaneDetected = (anchor) => {
@@ -133,7 +135,9 @@ export default class ReactNativeARKit extends Component {
   }
 
   _removePainting = () => {
-    this._showPreview()
+    this.setState({
+      activeImage: null
+    }, this._showPreview);
   }
 
   _checkWetherWereMovingAPainting = async (e) => {
@@ -187,9 +191,14 @@ export default class ReactNativeARKit extends Component {
     });
   }
 
+  _setActiveImage = (image) => {
+    this.setState({activeImage: image});
+  }
+
   render() {
     const {
       anchors,
+      activeImage,
       currentAnchor,
       canHangAPainting,
       paintingPosition,
@@ -211,7 +220,8 @@ export default class ReactNativeARKit extends Component {
           {
             currentAnchor && paintingPosition &&
             <Painting paintingPosition={paintingPosition}
-                      currentAnchor={currentAnchor}/>
+                      currentAnchor={currentAnchor}
+                      image={activeImage} />
           }
         </ARKit>
         {
@@ -233,8 +243,10 @@ export default class ReactNativeARKit extends Component {
             onResponderStart={this._checkWetherWereMovingAPainting}
             onResponderMove={this._movePainting}
             onResponderRelease={this._paintingMovingDone}
-            onPaintingRemove={this._removePainting}
-            />
+            onPaintingRemove={this._removePainting}>
+            <PaintingsList onImageSelected={this._setActiveImage}
+                           selectedImage={activeImage} />
+          </Controls>
         }
       </View>
     );

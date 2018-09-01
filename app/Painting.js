@@ -7,9 +7,13 @@ const PAINTING_WIDTH = 0.5;
 const PAINTING_HEIGHT = 0.6;
 const PAINTING_THIN = 0.03;
 
-const Painting = ({ paintingPosition, currentAnchor }) => {
+const normalizeRuler = (number) => {
+    return number / 1000;
+}
+
+const Painting = ({ paintingPosition, currentAnchor, image }) => {
     const outerPosition = currentAnchor.positionAbsolute ||
-        currentAnchor.position;
+                          currentAnchor.position;
 
     const eulerAngles = currentAnchor.eulerAngles;
 
@@ -25,17 +29,20 @@ const Painting = ({ paintingPosition, currentAnchor }) => {
                 y: eulerAngles.y,
                 z: eulerAngles.z,
             }}
-            transition={{ duration: 0.1 }}
+            transition={{ duration: 0.3 }}
             shape={{
-                width: PAINTING_WIDTH,
-                height: PAINTING_HEIGHT,
+                width: image ? normalizeRuler(image.width) : PAINTING_WIDTH,
+                height: image ? normalizeRuler(image.height) : PAINTING_HEIGHT,
                 length: PAINTING_THIN
             }}
             doubleSided={false}
             scale={1}
             castsShadow={true}
+            propsOnUnmount={{
+                scale: 0
+            }}
             material={{
-                diffuse: { path: 'assets/Grant_Wood_-_American_Gothic', intensity: 1 },
+                diffuse: { path: image && image.filePath, intensity: 1 },
                 lightingModel: ARKit.LightingModel.physicallyBased
             }} />
     );
