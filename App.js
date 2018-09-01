@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   AppRegistry,
+  PanResponder,
   TouchableOpacity
 } from 'react-native';
 
@@ -35,7 +36,7 @@ const Painting = ({paintingPosition, currentAnchor}) => {
       position={{
         x: paintingPosition.x,
         y: paintingPosition.y,
-        z: outerPosition.z
+        z: paintingPosition.z - PAINTING_THIN
       }}
       eulerAngles={{
         x: 0,
@@ -118,7 +119,7 @@ const PreviewAlternative = ({ onPress, switchPreviews, detected }) => {
       </TouchableOpacity>
       <TouchableOpacity onPress={switchPreviews} style={[styles.switchButton]}>
         <Text style={styles.switchButtonText}>
-          Can't find a wall? Press here!
+          Back to ARKit plane detection?{"\n"}Press here!
         </Text>
       </TouchableOpacity>
     </View>
@@ -193,7 +194,8 @@ const styles = StyleSheet.create({
 
   switchButtonText: {
     color: '#A308BA',
-    fontSize: 14
+    fontSize: 14,
+    textAlign: 'center'
   },
 
   buttonActive: {
@@ -242,7 +244,16 @@ export default class ReactNativeARKit extends Component {
     currentAnchor: null,
     paintingPosition: null,
     anchors: {},
+    touchPaintingDetected: false
   };
+  
+  componentWillMount() {
+    this._panResponder = PanResponder.create({
+      onMoveShouldSetPanResponder: this._checkWetherWereMovingAPainting,
+      onPanResponderMove: this._movePainting,
+      onPanResponderRelease: this._paintingMovingDone
+    });
+  }
 
   _onPlaneDetected = (anchor) => {
     this._updateAnchorInfo(anchor);
@@ -295,10 +306,16 @@ export default class ReactNativeARKit extends Component {
                                result.results[0] &&
                                result.results[0].positionAbsolute;
 
+      const currentAnchor = anchors[currentAnchorId];
+
       if (currentAnchorId) {
         this.setState({
-          currentAnchor: anchors[currentAnchorId],
-          paintingPosition
+          currentAnchor: currentAnchor, 
+          paintingPosition: {
+            x: paintingPosition.x,
+            y: paintingPosition.y,
+            z: currentAnchor.positionAbsolute.z
+          }
         }, this._hidePreview);
       }
     }
@@ -345,6 +362,57 @@ export default class ReactNativeARKit extends Component {
     this._showPreview()
   }
 
+  _checkWetherWereMovingAPainting = async (e) => {
+    const ne = e.nativeEvent;
+    const { pageX, pageY } = ne;
+
+    const hitResult = await ARKit.hitTestSceneObjects({x: pageX, y: pageY});
+    
+    const paintingFound = !!(hitResult && hitResult.results.length);
+
+    console.log({paintingFound})
+
+    this.setState({
+      touchPaintingDetected: paintingFound
+    });
+
+    return paintingFound;
+  }
+
+  _movePainting = async (e) => {
+    const { touchPaintingDetected, paintingPosition } = this.state;
+
+    if (!touchPaintingDetected) {
+      return;
+    }
+
+    const ne = e.nativeEvent;
+    const { pageX, pageY } = ne;
+
+    const hitResult = await ARKit.hitTestSceneObjects({ x: pageX, y: pageY });
+    const positionBase = hitResult &&
+                     hitResult.results &&
+                     hitResult.results[0];
+    
+    if (positionBase) {
+      const newPaintingPosition = {
+        x: positionBase.positionAbsolute.x,
+        y: positionBase.positionAbsolute.y,
+        z: paintingPosition.z
+      }
+
+      this.setState({
+        paintingPosition: newPaintingPosition
+      });
+    }
+  }
+
+  _paintingMovingDone = () => {
+    this.setState({
+      touchPaintingDetected: false
+    });
+  }
+
   render() {
     const {
       anchors,
@@ -387,8 +455,20 @@ export default class ReactNativeARKit extends Component {
         }
         {
           currentAnchor &&
-          <RemoveButton
-            onPress={this._removePainting} />
+          <View style={{
+            flex: 1,
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            backgroundColor: 'transparent'
+          }}>
+            <View style={{flex: 1}}
+              {...this._panResponder.panHandlers} />
+            <RemoveButton
+              onPress={this._removePainting} />
+          </View>
         }
       </View>
     );
