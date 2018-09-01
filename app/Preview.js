@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     },
 
     switchButtonText: {
-        color: '#A308BA',
+        color: '#E8E8E8',
         fontSize: 14,
         textAlign: 'center'
     },

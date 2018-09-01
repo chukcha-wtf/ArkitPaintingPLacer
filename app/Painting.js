@@ -1,7 +1,7 @@
 import React from 'react';
 import { ARKit } from 'react-native-arkit';
 
-const { Box } = ARKit;
+const { Box, Group, Text } = ARKit;
 
 const PAINTING_WIDTH = 0.5;
 const PAINTING_HEIGHT = 0.6;
@@ -17,8 +17,11 @@ const Painting = ({ paintingPosition, currentAnchor, image }) => {
 
     const eulerAngles = currentAnchor.eulerAngles;
 
+    const paintingWidth = image ? normalizeRuler(image.width) : PAINTING_WIDTH;
+    const paintingHeight = image ? normalizeRuler(image.height) : PAINTING_HEIGHT;
+
     return (
-        <Box
+        <Group
             position={{
                 x: paintingPosition.x,
                 y: paintingPosition.y,
@@ -30,21 +33,31 @@ const Painting = ({ paintingPosition, currentAnchor, image }) => {
                 z: eulerAngles.z,
             }}
             transition={{ duration: 0.3 }}
-            shape={{
-                width: image ? normalizeRuler(image.width) : PAINTING_WIDTH,
-                height: image ? normalizeRuler(image.height) : PAINTING_HEIGHT,
-                length: PAINTING_THIN
-            }}
-            doubleSided={false}
             scale={1}
-            castsShadow={true}
             propsOnUnmount={{
                 scale: 0
             }}
-            material={{
-                diffuse: { path: image && image.filePath, intensity: 1 },
-                lightingModel: ARKit.LightingModel.physicallyBased
-            }} />
+            castsShadow={true}>
+            <Box
+                position={{ x: 0, y: 0, z: 0 }}
+                shape={{
+                    width: paintingWidth,
+                    height: paintingHeight,
+                    length: PAINTING_THIN
+                }}
+                doubleSided={false}
+                material={{
+                    diffuse: { path: image && image.filePath, intensity: 1 },
+                    lightingModel: ARKit.LightingModel.physicallyBased
+                }} />
+            {
+                !!image &&
+                <Text
+                text={`${image.title} - ${image.author}`} 
+                position={{ x: 0, z: 0, y: - paintingHeight / 2 - 0.05  }}
+                font={{size: 0.03, depth: PAINTING_THIN}} />
+            }
+        </Group>
     );
 }
 

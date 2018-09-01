@@ -71,10 +71,14 @@ export default class PaintingList extends Component {
 
                 const filePath = RNFS.DocumentDirectoryPath + `/image_${key}.jpg`;
 
-                const downloadResult = await RNFS.downloadFile({
-                    fromUrl: imageUrl,
-                    toFile: filePath
-                }).promise;
+                const exists = await RNFS.exists(filePath);
+                
+                if (!exists) {
+                    const downloadResult = await RNFS.downloadFile({
+                        fromUrl: imageUrl,
+                        toFile: filePath
+                    }).promise;
+                }
                 
                 painting.filePath = filePath;
                 paintings[key] = painting;
@@ -127,6 +131,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,
         height: 150,
+        paddingHorizontal: 10,
         width: '100%'
     },
     

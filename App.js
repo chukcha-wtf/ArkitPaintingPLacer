@@ -168,9 +168,9 @@ export default class ReactNativeARKit extends Component {
     const { pageX, pageY } = ne;
 
     const hitResult = await ARKit.hitTestSceneObjects({ x: pageX, y: pageY });
-    const positionBase = hitResult &&
-                     hitResult.results &&
-                     hitResult.results[0];
+    const hitResults = hitResult &&
+                       hitResult.results || [];
+    const positionBase =  hitResults[hitResults.length - 1];
     
     if (positionBase) {
       const newPaintingPosition = {
