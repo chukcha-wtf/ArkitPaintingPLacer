@@ -45,7 +45,11 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>NSCameraUsageDescription</key>
-	<string>Your message to user when the camera is accessed for the first time</string>
+	<string>We need acces to the camera to provide the best AR experience</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Needed to store the AR snapshots</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Needed to store the AR snapshots</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>

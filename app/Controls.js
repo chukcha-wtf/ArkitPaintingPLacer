@@ -7,12 +7,14 @@ import {
     TouchableOpacity
 } from 'react-native';
 
+import { ARKit } from 'react-native-arkit';
+import Permissions from 'react-native-permissions'
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const RemoveButton = ({ onPress }) => {
     return (
         <TouchableOpacity onPress={onPress}
-            style={styles.removeButton}>
+            style={[styles.button, styles.removeButton]}>
             <Icon name="ios-trash"
                 color="#fff"
                 size={24}
@@ -20,6 +22,19 @@ const RemoveButton = ({ onPress }) => {
         </TouchableOpacity>
     );
 }
+
+const SnapshotButton = ({ onPress }) => {
+    return (
+        <TouchableOpacity onPress={onPress}
+            style={[styles.button, styles.snapshotButton]}>
+            <Icon name="ios-camera"
+                color="#fff"
+                size={24}
+                style={{ marginLeft: 1, marginTop: 1 }} />
+        </TouchableOpacity>
+    );
+}
+
 
 export default class Controls extends Component {
     componentWillMount() {
@@ -36,6 +51,21 @@ export default class Controls extends Component {
         });
     }
 
+    _takeSnapshot = async () => {
+        try {
+            const cameraRollPermission = await Permissions.check('photo');
+
+            if (cameraRollPermission !== 'authorized') {
+                const askResult = await Permissions.request('photo');
+            }
+
+            const result = await ARKit.snapshot();
+        }
+        catch (er) {
+            console.warn("FAILED to take a snapshot", er);
+        }
+    }
+
     render() {
         const { onPaintingRemove, children } = this.props;
         
@@ -45,6 +75,8 @@ export default class Controls extends Component {
                     {...this._panResponder.panHandlers} />
                 <RemoveButton
                     onPress={onPaintingRemove} />
+                <SnapshotButton
+                    onPress={this._takeSnapshot} />
                 {children}
             </View>
         );
@@ -61,10 +93,9 @@ const styles = StyleSheet.create({
         left: 0,
         backgroundColor: 'transparent'
     },
-    
-    removeButton: {
+
+    button: {
         position: 'absolute',
-        top: 40,
         right: 20,
         width: 40,
         height: 40,
@@ -75,5 +106,14 @@ const styles = StyleSheet.create({
         borderColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center'
+        
+    },
+    
+    removeButton: {
+        top: 40
+    },
+
+    snapshotButton: {
+        top: 100
     }
 });
