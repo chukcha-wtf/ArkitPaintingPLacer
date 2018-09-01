@@ -148,8 +148,6 @@ export default class ReactNativeARKit extends Component {
     
     const paintingFound = !!(hitResult && hitResult.results.length);
 
-    console.log({paintingFound})
-
     this.setState({
       touchPaintingDetected: paintingFound
     });
@@ -210,7 +208,6 @@ export default class ReactNativeARKit extends Component {
       <View style={{ flex: 1 }}>
         <ARKit
           style={{ flex: 1 }}
-          debug
           planeDetection={ARKit.ARPlaneDetection.Vertical}
           lightEstimationEnabled
           onAnchorDetected={this._onPlaneDetected}

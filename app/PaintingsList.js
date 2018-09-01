@@ -49,17 +49,12 @@ export default class PaintingList extends Component {
         isLoading: true
     };
     
-    componentDidMount() {
-        const { onImageSelected } = this.props;
-        const { paintings } = this.state;
-        
-        onImageSelected &&
-        onImageSelected(Object.values(paintings)[0]);
-
+    componentDidMount() {        
         this._getImages();
     }
     
     _getImages = async () => {
+        const { onImageSelected } = this.props;
         try {
             const { paintings } = PaintingsData;
             const paintingsIds = Object.keys(paintings);
@@ -82,6 +77,11 @@ export default class PaintingList extends Component {
                 
                 painting.filePath = filePath;
                 paintings[key] = painting;
+
+                if (i === 0) {
+                    onImageSelected &&
+                    onImageSelected(painting);
+                }
             }
 
             this.setState({ paintings });
