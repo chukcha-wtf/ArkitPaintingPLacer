@@ -22,43 +22,23 @@ const PAINTING_THIN = 0.03;
 
 const screen = Dimensions.get('window');
 
-const PaintingPlaceholder = withProjectedPosition()(({positionProjected, projectionResult}) => {
-  if (!projectionResult) {
-    return null;
-  }
-
-  return (
-    <Box
-      position={positionProjected}
-      transition={{duration: 0.1}}
-      shape={{ 
-        width: PAINTING_WIDTH,
-        height: PAINTING_HEIGHT,
-        length: PAINTING_THIN
-      }}
-      doubleSided={false}
-      scale={1}
-      castsShadow={true}
-      material={{
-        diffuse: { path: 'assets/Grant_Wood_-_American_Gothic', intensity: 0.5 },
-        lightingModel: ARKit.LightingModel.physicallyBased
-      }} />
-  );
-});
-
 const Painting = ({paintingPosition, currentAnchor}) => {
-  console.log({currentAnchor, paintingPosition});
+  const outerPosition = currentAnchor.positionAbsolute ||
+                        currentAnchor.position;
+  
+  const eulerAngles = currentAnchor.eulerAngles || currentAnchor.euler;
+
   return (
     <Box
       position={{
         x: paintingPosition.x,
         y: paintingPosition.y,
-        z: currentAnchor.positionAbsolute.z
+        z: outerPosition.z
       }}
       eulerAngles={{
         x: 0,
-        y: currentAnchor.eulerAngles.y,
-        z: currentAnchor.eulerAngles.z,
+        y: eulerAngles.y,
+        z: eulerAngles.z,
       }}
       transition={{ duration: 0.1 }}
       shape={{
@@ -76,7 +56,7 @@ const Painting = ({paintingPosition, currentAnchor}) => {
   );
 }
 
-const Preview = ({ onPress, detected }) => {
+const Preview = ({ onPress, switchPreviews, detected }) => {
   const activeStyle = detected ? styles.buttonActive : {};
   const activeViewportStyle = detected ? styles.viewFinderActive : {};
 
@@ -84,7 +64,7 @@ const Preview = ({ onPress, detected }) => {
     <View style={styles.previewHolder}>
       <View style={styles.hintTextHolder}>
         <Text style={styles.hintText}>
-          Hey!{"\n"}Move your phone around to detect some walls.
+          Move your phone around to detect some walls.
         </Text>
       </View>
       <View style={styles.viewFinderHolder}>
@@ -93,6 +73,38 @@ const Preview = ({ onPress, detected }) => {
       <TouchableOpacity onPress={detected ? onPress : null} style={[styles.previewButton, activeStyle]}>
         <Text style={styles.previewButtonText}>
           Hang The Painting
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={switchPreviews} style={[styles.switchButton]}>
+        <Text style={styles.switchButtonText}>
+          Can't find a wall? Press here!
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const PreviewAlternative = ({ onPress, switchPreviews, detected }) => {
+
+  return (
+    <View style={styles.previewHolder}>
+      <View style={styles.hintTextHolder}>
+        <Text style={styles.hintText}>
+          Please put your phone on the wall{"\n"}
+          to detect Vertical plane.
+        </Text>
+      </View>
+      <View style={styles.viewFinderHolder}>
+        <View style={styles.viewFinder} />
+      </View>
+      <TouchableOpacity onPress={onPress} style={[styles.previewButton, styles.buttonActive]}>
+        <Text style={styles.previewButtonText}>
+          Ready!
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={switchPreviews} style={[styles.switchButton]}>
+        <Text style={styles.switchButtonText}>
+          Can't find a wall? Press here!
         </Text>
       </TouchableOpacity>
     </View>
@@ -112,27 +124,34 @@ const styles = StyleSheet.create({
   hintTextHolder: {
     position: 'absolute',
     width: '100%',
-    marginLeft: 20,
-    alignItems: 'center'
+    margin: 20,
+    marginTop: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FDCB5C',
+    opacity: 0.8,
+    borderRadius: 10,
+    borderColor: '#fff',
+    borderWidth: 1
   },
 
   hintText: {
-    fontSize: 24,
-    lineHeight: 32,
+    fontSize: 16,
+    lineHeight: 18,
     textAlign: 'center',
-    marginTop: 40,
-    color: '#FDCB5C'
+    padding: 10,
+    color: '#fff'
   },
 
   previewButton: {
     borderWidth: 1,
     borderColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 15,
+    padding: 15,
     margin: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    bottom: 0,
+    bottom: 50,
     position: 'absolute',
     width: '90%',
     backgroundColor: '#CECECE'
@@ -141,6 +160,22 @@ const styles = StyleSheet.create({
   previewButtonText: {
     fontSize: 20,
     color: '#fff'
+  },
+
+  switchButton: {
+    padding: 20,
+    margin: 40,
+    marginBottom: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    bottom: 0,
+    position: 'absolute',
+    width: '90%',
+  },
+
+  switchButtonText: {
+    color: '#A308BA',
+    fontSize: 14
   },
 
   buttonActive: {
@@ -169,7 +204,8 @@ const styles = StyleSheet.create({
 export default class ReactNativeARKit extends Component {
   state = {
     canHangAPainting: false,
-    showPreview: true,
+    showRegularPreview: true,
+    showAlternativePreview: false,
     currentAnchor: null,
     paintingPosition: null,
     anchors: {},
@@ -229,20 +265,58 @@ export default class ReactNativeARKit extends Component {
       if (currentAnchorId) {
         this.setState({
           currentAnchor: anchors[currentAnchorId],
-          showPreview: false,
           paintingPosition
-        });
+        }, this._hidePreview);
       }
     }
   }
-  
+
+  _setCurrentPlaneFromPhonePosition = async () => {
+    const camera = await ARKit.getCamera();
+
+    this.setState({
+      currentAnchor: camera,
+      paintingPosition: camera.position
+    }, this._hidePreview);
+  }
+
+  _switchPreview = () => {
+    const {
+      showAlternativePreview,
+      showRegularPreview
+    } = this.state;
+
+    this.setState({
+      showAlternativePreview: !showAlternativePreview,
+      showRegularPreview: !showRegularPreview
+    });
+  }
+
+  _showPreview = () => {
+    this.setState({
+      showAlternativePreview: false,
+      showRegularPreview: true
+    });
+  }
+
+  _hidePreview = () => {
+    this.setState({
+      showAlternativePreview: false,
+      showRegularPreview: false,
+      currentAnchor: null,
+      paintingPosition: null
+    });
+  }
+
+
   render() {
     const {
       anchors,
-      showPreview,
       currentAnchor,
+      canHangAPainting,
       paintingPosition,
-      canHangAPainting
+      showRegularPreview,
+      showAlternativePreview
     } = this.state;
     
     return (
@@ -263,8 +337,15 @@ export default class ReactNativeARKit extends Component {
           }
         </ARKit>
         {
-          showPreview && <Preview onPress={this._setCurrentAnchor}
-                                  detected={canHangAPainting} />
+          showRegularPreview && <Preview
+                                  onPress={this._setCurrentAnchor}
+                                  detected={canHangAPainting}
+                                  switchPreviews={this._switchPreview} />
+        }
+        {
+          showAlternativePreview && <PreviewAlternative
+                                      onPress={this._setCurrentPlaneFromPhonePosition}
+                                      switchPreviews={this._switchPreview} />
         }
       </View>
     );
