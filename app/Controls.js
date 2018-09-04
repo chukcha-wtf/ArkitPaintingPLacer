@@ -60,6 +60,8 @@ export default class Controls extends Component {
             }
 
             const result = await ARKit.snapshot();
+
+            alert("Done!", "Screenshot saved to your camera roll");
         }
         catch (er) {
             console.warn("FAILED to take a snapshot", er);
