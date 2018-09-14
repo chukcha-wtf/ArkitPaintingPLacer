@@ -2,191 +2,91 @@ import React, { Component } from 'react';
 
 import {
   View,
-  Text,
-  StyleSheet,
   Dimensions,
-  AppRegistry,
-  PanResponder,
-  TouchableOpacity
+  AppRegistry
 } from 'react-native';
 
 import { ARKit } from 'react-native-arkit';
 
+// redux
+import { Provider, connect } from 'react-redux';
+import store from './redux/store';
+
+import {
+  selectAnchors,
+  selectCurrentAnchor,
+  selectPaintingPosition,
+  selectShouldShowRegularPreview,
+  selectShouldShowAlternativePreview
+} from './redux/reducers';
+
+import { PaintingActionCreators } from './redux/actions';
+
+// components
 import Painting from './app/Painting';
 import Controls from './app/Controls';
 import PaintingsList from './app/PaintingsList';
 import { Preview, PreviewAlternative } from './app/Preview';
 
+// helpers
 const screen = Dimensions.get('window');
 
-export default class ReactNativeARKit extends Component {
-  state = {
-    canHangAPainting: false,
-    showRegularPreview: true,
-    showAlternativePreview: false,
-    currentAnchor: null,
-    paintingPosition: null,
-    anchors: {},
-    touchPaintingDetected: false,
-    activeImage: null
-  };
-  
-  _onPlaneDetected = (anchor) => {
-    this._updateAnchorInfo(anchor);
-    this._checkWetherPossibleToHangAPainting(anchor);
+// redux map
+const mapStateToProps = state => ({
+  anchors: selectAnchors(state),
+  currentAnchor: selectCurrentAnchor(state),
+  paintingPosition: selectPaintingPosition(state),
+  showRegularPreview: selectShouldShowRegularPreview(state),
+  showAlternativePreview: selectShouldShowAlternativePreview(state)
+});
+
+const mapDispatchToProps = dispatch => ({
+  updateAnchorsInfo(anchors) {
+    dispatch(PaintingActionCreators.updateAnchorsInfo(anchors));
+  },
+  checkIfPaintingAllowed(canHangAPainting) {
+    dispatch(PaintingActionCreators.checkIfPaintingAllowed(canHangAPainting));
+  },
+});
+
+class ReactNativeARKit extends Component {  
+  onPlaneDetected = (anchor) => {
+    this.updateAnchorInfo(anchor);
+    this.checkWetherPossibleToHangAPainting(anchor);
   }
   
-  _onPlaneUpdated = (anchor) => {
-    this._updateAnchorInfo(anchor);
+  onPlaneUpdated = (anchor) => {
+    this.updateAnchorInfo(anchor);
   }
   
-  _updateAnchorInfo = (anchor) => {
-    const { anchors } = this.state;
+  updateAnchorInfo = (anchor) => {
+    const {
+      anchors,
+      updateAnchorsInfo
+    } = this.props;
   
     anchors[anchor.id] = anchor;
   
-    this.setState({anchors});
+    updateAnchorsInfo(anchors);
   }
 
-  _checkWetherPossibleToHangAPainting = async (anchor) => {
+  checkWetherPossibleToHangAPainting = async (anchor) => {
+    const { checkIfPaintingAllowed } = this.props;
     const point = {
       x: screen.width / 2,
-      x: screen.height / 2
+      y: screen.height / 2
     };
 
-    const result = await ARKit.hitTestPlanes(point, ARKit.ARHitTestResultType.ExistingPlaneUsingGeometry);
+    const result = await ARKit.hitTestPlanes(
+      point,
+      ARKit.ARHitTestResultType.ExistingPlaneUsingExtent
+    );
 
-    this.setState({
-      canHangAPainting: !!(result && result.results && result.results.length)
-    });
-  }
-
-  _setCurrentAnchor = async () => {
-    const { anchors } = this.state;
+    const canHangAPainting = !!(result &&
+                             result.results &&
+                             result.results.length);
     
-    const point = {
-      x: screen.width / 2,
-      x: screen.height / 2
-    };
-    
-    const result = await ARKit.hitTestPlanes(point, ARKit.ARHitTestResultType.ExistingPlaneUsingGeometry);
-
-    if (result) {
-      const currentAnchorId = result &&
-                              result.results &&
-                              result.results[0] &&
-                              result.results[0].id;
-          
-      const paintingPosition = result &&
-                               result.results &&
-                               result.results[0] &&
-                               result.results[0].positionAbsolute;
-
-      const currentAnchor = anchors[currentAnchorId];
-
-      if (currentAnchorId) {
-        this.setState({
-          currentAnchor: currentAnchor, 
-          paintingPosition: {
-            x: paintingPosition.x,
-            y: paintingPosition.y,
-            z: currentAnchor.positionAbsolute.z
-          }
-        }, this._hidePreview);
-      }
-    }
-  }
-
-  _setCurrentPlaneFromPhonePosition = async () => {
-    const camera = await ARKit.getCamera();
-
-    this.setState({
-      currentAnchor: camera,
-      paintingPosition: camera.position
-    }, this._hidePreview);
-  }
-
-  _switchPreview = () => {
-    const {
-      showAlternativePreview,
-      showRegularPreview
-    } = this.state;
-
-    this.setState({
-      showAlternativePreview: !showAlternativePreview,
-      showRegularPreview: !showRegularPreview
-    });
-  }
-
-  _showPreview = () => {
-    this.setState({
-      showAlternativePreview: false,
-      showRegularPreview: true,
-      currentAnchor: null,
-      paintingPosition: null
-    });
-  }
-
-  _hidePreview = () => {
-    this.setState({
-      showAlternativePreview: false,
-      showRegularPreview: false,
-    });
-  }
-
-  _removePainting = () => {
-    this.setState({
-      activeImage: null
-    }, this._showPreview);
-  }
-
-  _checkWetherWereMovingAPainting = async (e) => {
-    const ne = e.nativeEvent;
-    const { pageX, pageY } = ne;
-
-    const hitResult = await ARKit.hitTestSceneObjects({x: pageX, y: pageY});
-    
-    const paintingFound = !!(hitResult && hitResult.results.length);
-
-    this.setState({
-      touchPaintingDetected: paintingFound
-    });
-
-    return paintingFound;
-  }
-
-  _movePainting = async (e) => {
-    const { touchPaintingDetected, paintingPosition } = this.state;
-
-    if (!touchPaintingDetected) {
-      return;
-    }
-
-    const ne = e.nativeEvent;
-    const { pageX, pageY } = ne;
-
-    const hitResult = await ARKit.hitTestSceneObjects({ x: pageX, y: pageY });
-    const hitResults = hitResult &&
-                       hitResult.results || [];
-    const positionBase =  hitResults[hitResults.length - 1];
-    
-    if (positionBase) {
-      const newPaintingPosition = {
-        x: positionBase.positionAbsolute.x,
-        y: positionBase.positionAbsolute.y,
-        z: paintingPosition.z
-      }
-
-      this.setState({
-        paintingPosition: newPaintingPosition
-      });
-    }
-  }
-
-  _paintingMovingDone = () => {
-    this.setState({
-      touchPaintingDetected: false
-    });
+    checkIfPaintingAllowed(canHangAPainting);
   }
 
   _setActiveImage = (image) => {
@@ -195,59 +95,51 @@ export default class ReactNativeARKit extends Component {
 
   render() {
     const {
-      anchors,
-      activeImage,
       currentAnchor,
-      canHangAPainting,
       paintingPosition,
       showRegularPreview,
       showAlternativePreview
-    } = this.state;
+    } = this.props;
     
     return (
-      <View style={{ flex: 1 }}>
-        <ARKit
-          style={{ flex: 1 }}
-          planeDetection={ARKit.ARPlaneDetection.Vertical}
-          lightEstimationEnabled
-          onAnchorDetected={this._onPlaneDetected}
-          onAnchorUpdated={this._onPlaneUpdated}
-          onARKitError={console.log} // if arkit could not be initialized (e.g. missing permissions), you will get notified here
-        >
+      <Provider store={store}>
+        <View style={{ flex: 1 }}>
+          <ARKit
+            style={{ flex: 1 }}
+            planeDetection={ARKit.ARPlaneDetection.Vertical}
+            lightEstimationEnabled
+            onPlaneDetected={this.onPlaneDetected}
+            onPlaneUpdated={this.onPlaneUpdated}
+            onAnchorDetected={this.onPlaneDetected}
+            onAnchorUpdated={this.onPlaneUpdated}
+            onARKitError={console.log} // if arkit could not be initialized (e.g. missing permissions), you will get notified here
+          >
+            {!!currentAnchor && !!paintingPosition && <Painting />}
+          </ARKit>
+          {showRegularPreview && <Preview />}
+          {showAlternativePreview && <PreviewAlternative />}
           {
-            currentAnchor && paintingPosition &&
-            <Painting paintingPosition={paintingPosition}
-                      currentAnchor={currentAnchor}
-                      image={activeImage} />
+            !!currentAnchor &&
+            <Controls>
+              <PaintingsList />
+            </Controls>
           }
-        </ARKit>
-        {
-          showRegularPreview &&
-          <Preview
-            onPress={this._setCurrentAnchor}
-            detected={canHangAPainting}
-            switchPreviews={this._switchPreview} />
-        }
-        {
-          showAlternativePreview &&
-          <PreviewAlternative
-            onPress={this._setCurrentPlaneFromPhonePosition}
-            switchPreviews={this._switchPreview} />
-        }
-        {
-          currentAnchor &&
-          <Controls 
-            onResponderStart={this._checkWetherWereMovingAPainting}
-            onResponderMove={this._movePainting}
-            onResponderRelease={this._paintingMovingDone}
-            onPaintingRemove={this._removePainting}>
-            <PaintingsList onImageSelected={this._setActiveImage}
-                           selectedImage={activeImage} />
-          </Controls>
-        }
-      </View>
+        </View>
+      </Provider>
     );
   }
 }
 
-AppRegistry.registerComponent('ReactNativeARKit', () => ReactNativeARKit);
+ReactNativeARKit = connect(mapStateToProps, mapDispatchToProps)(ReactNativeARKit);
+
+class App extends Component {
+  render() {
+    return (
+      <Provider store={store}>
+        <ReactNativeARKit />
+      </Provider>
+    );
+  }
+}
+
+export default App;

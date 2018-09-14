@@ -10,6 +10,21 @@ import {
     ActivityIndicator
 } from 'react-native';
 
+import { connect } from 'react-redux';
+import { PaintingActionCreators } from '../redux/actions';
+import { selectActiveImage } from '../redux/reducers';
+
+// redux map
+const mapStateToProps = state => ({
+    activeImage: selectActiveImage(state),
+});
+
+const mapDispatchToProps = dispatch => ({
+    setActiveImage(image) {
+        dispatch(PaintingActionCreators.setActiveImage(image));
+    }
+});
+
 import PaintingsData from '../data/db.json';
 import RNFS from 'react-native-fs';
 
@@ -43,18 +58,18 @@ class ImageHolder extends Component {
     }
 }
 
-export default class PaintingList extends Component {
+class PaintingList extends Component {
     state = {
         paintings: PaintingsData.paintings,
         isLoading: true
     };
     
     componentDidMount() {        
-        this._getImages();
+        this.getImages();
     }
     
-    _getImages = async () => {
-        const { onImageSelected } = this.props;
+    getImages = async () => {
+        const { setActiveImage } = this.props;
         try {
             const { paintings } = PaintingsData;
             const paintingsIds = Object.keys(paintings);
@@ -79,8 +94,8 @@ export default class PaintingList extends Component {
                 paintings[key] = painting;
 
                 if (i === 0) {
-                    onImageSelected &&
-                    onImageSelected(painting);
+                    setActiveImage &&
+                    setActiveImage(painting);
                 }
             }
 
@@ -93,15 +108,15 @@ export default class PaintingList extends Component {
         this.setState({isLoading: false});
     }
 
-    _renderItem = ({item}) => {
-        const { onImageSelected, selectedImage } = this.props;
+    renderItem = ({item}) => {
+        const { setActiveImage, activeImage } = this.props;
         
         return <ImageHolder item={item}
-                            isSelected={selectedImage === item}
-                            onImageSelected={onImageSelected}/>;
+                            isSelected={activeImage === item}
+                            onImageSelected={setActiveImage}/>;
     }
 
-    _keyExtractor = (item) => `painting_${item.id}`;
+    keyExtractor = (item) => `painting_${item.id}`;
 
     render() {
         const { isLoading, paintings } = this.state;
@@ -117,8 +132,8 @@ export default class PaintingList extends Component {
                     </View> :
                     <FlatList horizontal={true}
                               data={paintingsData}
-                              renderItem={this._renderItem}
-                              keyExtractor={this._keyExtractor} />
+                              renderItem={this.renderItem}
+                              keyExtractor={this.keyExtractor} />
                 }        
             </View>
         );
@@ -162,3 +177,7 @@ const styles = StyleSheet.create({
         color: '#383838'
     }
 });
+
+PaintingList = connect(mapStateToProps, mapDispatchToProps)(PaintingList);
+
+export default PaintingList;

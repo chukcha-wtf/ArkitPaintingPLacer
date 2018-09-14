@@ -2,14 +2,36 @@ import React, { Component } from 'react';
 
 import {
     View,
+    Alert,
     StyleSheet,
     PanResponder,
     TouchableOpacity
 } from 'react-native';
 
+import { connect } from 'react-redux';
+import { PaintingActionCreators } from '../redux/actions';
+import { selectPaintingPosition } from '../redux/reducers';
+
 import { ARKit } from 'react-native-arkit';
 import Permissions from 'react-native-permissions'
 import Icon from 'react-native-vector-icons/Ionicons';
+
+// redux map
+const mapStateToProps = state => ({
+    paintingPosition: selectPaintingPosition(state),
+});
+
+const mapDispatchToProps = dispatch => ({
+    setActiveImage(image) {
+        dispatch(PaintingActionCreators.setActiveImage(image));
+    },
+    showPreview() {
+        dispatch(PaintingActionCreators.showPreview());
+    },
+    setPaintingPosition(position) {
+        dispatch(PaintingActionCreators.setPaintingPosition(position));
+    }
+});
 
 const RemoveButton = ({ onPress }) => {
     return (
@@ -35,23 +57,81 @@ const SnapshotButton = ({ onPress }) => {
     );
 }
 
+class Controls extends Component {
+    state = {
+        touchPaintingDetected: false
+    };
 
-export default class Controls extends Component {
-    componentWillMount() {
-        const {
-            onResponderStart,
-            onResponderMove,
-            onResponderRelease
-        } = this.props;
-        
+    componentWillMount() {        
         this._panResponder = PanResponder.create({
-            onMoveShouldSetPanResponder: onResponderStart,
-            onPanResponderMove: onResponderMove,
-            onPanResponderRelease: onResponderRelease
+            onMoveShouldSetPanResponder: this.checkWetherWereMovingAPainting,
+            onPanResponderMove: this.movePainting,
+            onPanResponderRelease: this.paintingMovingDone
         });
     }
 
-    _takeSnapshot = async () => {
+    removePainting = () => {
+        const {
+            showPreview,
+            setActiveImage
+        } = this.props;
+        
+        setActiveImage(null);
+        showPreview();
+    }
+
+    checkWetherWereMovingAPainting = async (e) => {
+        const ne = e.nativeEvent;
+        const { pageX, pageY } = ne;
+
+        const hitResult = await ARKit.hitTestSceneObjects({ x: pageX, y: pageY });
+
+        const paintingFound = !!(hitResult && hitResult.results.length);
+
+        this.setState({
+            touchPaintingDetected: paintingFound
+        });
+
+        return paintingFound;
+    }
+
+    movePainting = async (e) => {
+        const { touchPaintingDetected } = this.state;
+        const {
+            paintingPosition,
+            setPaintingPosition
+        } = this.props;
+
+        if (!touchPaintingDetected) {
+            return;
+        }
+
+        const ne = e.nativeEvent;
+        const { pageX, pageY } = ne;
+
+        const hitResult = await ARKit.hitTestSceneObjects({ x: pageX, y: pageY });
+        const hitResults = hitResult &&
+                           hitResult.results || [];
+        const positionBase = hitResults[hitResults.length - 1];
+
+        if (positionBase) {
+            const newPaintingPosition = {
+                x: positionBase.positionAbsolute.x,
+                y: positionBase.positionAbsolute.y,
+                z: paintingPosition.z
+            }
+
+            setPaintingPosition(newPaintingPosition);
+        }
+    }
+
+    paintingMovingDone = () => {
+        this.setState({
+            touchPaintingDetected: false
+        });
+    }
+
+    takeSnapshot = async () => {
         try {
             const cameraRollPermission = await Permissions.check('photo');
 
@@ -61,7 +141,7 @@ export default class Controls extends Component {
 
             const result = await ARKit.snapshot();
 
-            alert("Done!", "Screenshot saved to your camera roll");
+            Alert.alert("Done", "Screenshot saved to your camera roll");
         }
         catch (er) {
             console.warn("FAILED to take a snapshot", er);
@@ -69,16 +149,16 @@ export default class Controls extends Component {
     }
 
     render() {
-        const { onPaintingRemove, children } = this.props;
+        const { children } = this.props;
         
         return (
             <View style={styles.controlsHolder}>
                 <View style={{ flex: 1 }}
                     {...this._panResponder.panHandlers} />
                 <RemoveButton
-                    onPress={onPaintingRemove} />
+                    onPress={this.removePainting} />
                 <SnapshotButton
-                    onPress={this._takeSnapshot} />
+                    onPress={this.takeSnapshot} />
                 {children}
             </View>
         );
@@ -119,3 +199,7 @@ const styles = StyleSheet.create({
         top: 100
     }
 });
+
+Controls = connect(mapStateToProps, mapDispatchToProps)(Controls);
+
+export default Controls;
